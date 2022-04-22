@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <string.h>
 
 // Global Variables
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -14,12 +15,17 @@ char **mp3_data;
 // Thread function
 void* thread_func(void* arg){
 
-  unsigned long thread = (unsigned long) arg;
+  unsigned char *dirnum = (unsigned char*)arg;
+
+  char dirname[4] = "dir0";
 
   // Critical Section
   pthread_mutex_lock(&mutex);
 
-  printf("Thread: %lu\n", thread);
+
+
+    printf("%s\n", dirname);
+
 
   pthread_mutex_unlock(&mutex);
 
@@ -47,12 +53,12 @@ int main(int argc, char **argv){
     }
   } 
 
-  printf("%d root directories\n", root_dir_counter);
   pthread_t tids[root_dir_counter];
-
 
   // Start appropriate amount of threads
   for(unsigned long i = 0; i < root_dir_counter; i++){
+
+
     int thread_create_errno = pthread_create(&tids[i], NULL, thread_func, (void*) i);
     if(thread_create_errno != 0){
       printf("Error creating thread\n Error Number: %d", thread_create_errno);
@@ -64,7 +70,6 @@ int main(int argc, char **argv){
   // Wait for all threads to be done before we continue
   for(int i = 0; i < root_dir_counter; i++){
     pthread_join(tids[i], NULL);
-    printf("Thread done\n");
   }
 
   return 0;
