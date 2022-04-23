@@ -15,20 +15,51 @@ char **mp3_data;
 // Thread function
 void* thread_func(void* arg){
 
-  unsigned char *dirnum = (unsigned char*)arg;
+  DIR *dir;
+  struct dirent *entry;
 
+  unsigned long num = (unsigned long) arg;
+  
   char dirname[4] = "dir0";
+  dirname[3] = num + '0';
+
+  if(!(dir = opendir(dirname))) return NULL;
+
+  unsigned long dir_counter = 0;
+
+  while((entry = readdir(dir)) != NULL){
+
+    if(entry->d_type == DT_DIR){
+      if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+      
+      printf("dir%ld\n", dir_counter);
+
+      thread_func((void*) dir_counter);
+
+      dir_counter++;
+    }
+
+    if(entry->d_type == DT_REG){
+      printf("%s\n", entry->d_name);
+    }
+
+    if(entry->d_type == DT_LNK){
+      printf("Its a trap!\n");
+    }
+
+
+  }
+
+
+
 
   // Critical Section
-  pthread_mutex_lock(&mutex);
-
-
-
-    printf("%s\n", dirname);
+  pthread_mutex_lock(&mutex);    
 
 
   pthread_mutex_unlock(&mutex);
 
+  closedir(dir);
 
   return NULL;
 }
@@ -57,7 +88,6 @@ int main(int argc, char **argv){
 
   // Start appropriate amount of threads
   for(unsigned long i = 0; i < root_dir_counter; i++){
-
 
     int thread_create_errno = pthread_create(&tids[i], NULL, thread_func, (void*) i);
     if(thread_create_errno != 0){
