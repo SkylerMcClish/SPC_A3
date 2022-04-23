@@ -18,46 +18,39 @@ void* thread_func(void* arg){
   DIR *dir;
   struct dirent *entry;
 
-  unsigned long num = (unsigned long) arg;
-  
-  char dirname[4] = "dir0";
-  dirname[3] = num + '0';
+  char* dirname = arg;
 
-  if(!(dir = opendir(dirname))) return NULL;
+  printf("%s\n", dirname);
 
-  unsigned long dir_counter = 0;
+  dir = opendir(dirname);
 
-  while((entry = readdir(dir)) != NULL){
+  while((entry = readdir(dir))){    
 
     if(entry->d_type == DT_DIR){
       if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
       
-      printf("dir%ld\n", dir_counter);
+      //printf("%s: %s\n", dirname, entry->d_name);
 
-      thread_func((void*) dir_counter);
 
-      dir_counter++;
+
+      //thread_func((void*)(unsigned long) (entry->d_name[3] - '0'));
+
     }
 
     if(entry->d_type == DT_REG){
-      printf("%s\n", entry->d_name);
+      //printf("%s\n", entry->d_name);
     }
 
     if(entry->d_type == DT_LNK){
       printf("Its a trap!\n");
     }
-
-
   }
 
-
-
-
   // Critical Section
-  pthread_mutex_lock(&mutex);    
+  //pthread_mutex_lock(&mutex);    
 
 
-  pthread_mutex_unlock(&mutex);
+  //pthread_mutex_unlock(&mutex);
 
   closedir(dir);
 
@@ -85,11 +78,23 @@ int main(int argc, char **argv){
   } 
 
   pthread_t tids[root_dir_counter];
+  char **root_dirs = malloc(sizeof(char*) * root_dir_counter);
+  
+
+
+
 
   // Start appropriate amount of threads
   for(unsigned long i = 0; i < root_dir_counter; i++){
+    char dir[4] = "dir0";
+    dir[3] = i + '0';
+    char *dir_literal = dir;
 
-    int thread_create_errno = pthread_create(&tids[i], NULL, thread_func, (void*) i);
+    root_dirs[i] = malloc(sizeof(char) * 4);
+    strncpy(root_dirs[i], dir_literal, sizeof(char) * 4);
+
+    //printf("%s\n", root_dirs[i]);
+    int thread_create_errno = pthread_create(&tids[i], NULL, thread_func, root_dirs[i]);
     if(thread_create_errno != 0){
       printf("Error creating thread\n Error Number: %d", thread_create_errno);
       return -2;
