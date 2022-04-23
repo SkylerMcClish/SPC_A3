@@ -20,25 +20,39 @@ void* thread_func(void* arg){
 
   char* dirname = arg;
 
-  printf("%s\n", dirname);
+  //printf("%s\n", dirname);
 
-  dir = opendir(dirname);
+  if(!(dir = opendir(dirname))) return NULL;
 
-  while((entry = readdir(dir))){    
+  while((entry = readdir(dir))){        
 
     if(entry->d_type == DT_DIR){
-      if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+
+      char* path = strdup(dirname);
       
-      //printf("%s: %s\n", dirname, entry->d_name);
+      if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
 
+      
+      strcat(path, "/");
+      strcat(path, entry->d_name);
 
+      //printf("%s\n", path);
 
-      //thread_func((void*)(unsigned long) (entry->d_name[3] - '0'));
+      thread_func(path);
 
     }
 
     if(entry->d_type == DT_REG){
-      //printf("%s\n", entry->d_name);
+      printf("%s\n", entry->d_name);
+
+
+      pthread_mutex_lock(&mutex);    
+
+
+      found_files++;
+
+
+      pthread_mutex_unlock(&mutex);
     }
 
     if(entry->d_type == DT_LNK){
@@ -47,12 +61,13 @@ void* thread_func(void* arg){
   }
 
   // Critical Section
-  //pthread_mutex_lock(&mutex);    
+  pthread_mutex_lock(&mutex);    
 
 
-  //pthread_mutex_unlock(&mutex);
+  pthread_mutex_unlock(&mutex);
 
   closedir(dir);
+
 
   return NULL;
 }
@@ -79,13 +94,9 @@ int main(int argc, char **argv){
 
   pthread_t tids[root_dir_counter];
   char **root_dirs = malloc(sizeof(char*) * root_dir_counter);
-  
-
-
-
 
   // Start appropriate amount of threads
-  for(unsigned long i = 0; i < root_dir_counter; i++){
+  for(int i = 0; i < root_dir_counter; i++){
     char dir[4] = "dir0";
     dir[3] = i + '0';
     char *dir_literal = dir;
@@ -101,11 +112,13 @@ int main(int argc, char **argv){
     }
   }
 
-
   // Wait for all threads to be done before we continue
   for(int i = 0; i < root_dir_counter; i++){
     pthread_join(tids[i], NULL);
+    //printf("Thread: %ld closed\n", tids[i]);
   }
+
+  printf("%d\n", found_files);
 
   return 0;
 }
